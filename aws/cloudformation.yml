@@ -19,6 +19,12 @@ Resources:
         BlockPublicPolicy: false
         IgnorePublicAcls: false
         RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: ['GET']
+            AllowedOrigins: ['*']
+            MaxAge: 3000
 
   WebsiteBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -32,6 +38,10 @@ Resources:
             Principal: '*'
             Action: s3:GetObject
             Resource: !Join ['', ['arn:aws:s3:::', !Ref WebsiteBucket, '/*']]
+            Condition:
+              IpAddress:
+                aws:SourceIp: 
+                  - '0.0.0.0/0'
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -44,17 +54,23 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: http-only
+              OriginSSLProtocols: ['TLSv1.2']
         Enabled: true
         DefaultRootObject: index.html
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
-          AllowedMethods: ['GET', 'HEAD']
+          AllowedMethods: ['GET', 'HEAD', 'OPTIONS']
           CachedMethods: ['GET', 'HEAD']
+          Compress: true
+          DefaultTTL: 3600
+          MaxTTL: 86400
+          MinTTL: 0
           ForwardedValues:
             QueryString: false
             Cookies:
               Forward: none
+          ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
         CustomErrorResponses:
@@ -64,6 +80,61 @@ Resources:
           - ErrorCode: 403
             ResponseCode: 200
             ResponsePagePath: /index.html
+        WebACLId: !Ref WebACL
+        HttpVersion: http2
+        IPV6Enabled: true
+
+  SecurityHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub ${AWS::StackName}-security-headers
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval';"
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: same-origin
+            Override: true
+          XSSProtection:
+            ModeBlock: true
+            Protection: true
+            Override: true
+
+  WebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub ${AWS::StackName}-waf
+      Description: WAF for United Corgi Commonwealth Portal
+      Scope: CLOUDFRONT
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub ${AWS::StackName}-waf-metric
+      Rules:
+        - Name: RateLimit
+          Priority: 1
+          Statement:
+            RateBasedStatement:
+              Limit: 2000
+              AggregateKeyType: IP
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub ${AWS::StackName}-rate-limit
 
 Outputs:
   WebsiteURL:
@@ -72,3 +143,6 @@ Outputs:
   CloudFrontDomainName:
     Value: !GetAtt CloudFrontDistribution.DomainName
     Description: Domain name of CloudFront distribution
+  WebACLArn:
+    Value: !GetAtt WebACL.Arn
+    Description: ARN of WAF Web ACL
