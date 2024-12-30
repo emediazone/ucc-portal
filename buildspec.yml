@@ -8,6 +8,20 @@ phases:
       # Install dependencies
       - npm install
 
+  pre_build:
+    commands:
+      # Validate environment variables
+      - |
+        if [ -z "${S3_BUCKET_NAME}" ]; then
+          echo "Error: S3_BUCKET_NAME environment variable is required"
+          exit 1
+        fi
+      - |
+        if [ -z "${AWS_REGION}" ]; then
+          echo "Error: AWS_REGION environment variable is required"
+          exit 1
+        fi
+
   build:
     commands:
       # Build both frontend and backend
