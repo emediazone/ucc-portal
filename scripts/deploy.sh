@@ -8,21 +8,11 @@ if [ -f .env ]; then
     source .env
 fi
 
-# Check required environment variables
-if [ -z "$S3_BUCKET_NAME" ]; then
-    echo "Error: S3_BUCKET_NAME environment variable is required"
-    exit 1
-fi
+# Set AWS region
+export AWS_REGION="us-east-2"
 
-if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo "Error: AWS credentials are required. Make sure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are set."
-    exit 1
-fi
-
-if [ -z "$AWS_REGION" ]; then
-    echo "Using default region us-east-1"
-    export AWS_REGION="us-east-1"
-fi
+# Set S3 bucket name
+export S3_BUCKET_NAME="amplify-d26tocx92nj88b-ma-amplifydataamplifycodege-j6g2ske9yofx"
 
 # Build the application
 echo "Building application..."
@@ -35,16 +25,27 @@ aws cloudformation deploy \
     --stack-name ucc-portal \
     --capabilities CAPABILITY_IAM \
     --parameter-overrides \
-        DomainName=$S3_BUCKET_NAME
+        BucketName=$S3_BUCKET_NAME \
+    --region $AWS_REGION
 
 # Sync with S3
 echo "Deploying to S3..."
-aws s3 sync dist/public s3://$S3_BUCKET_NAME/ --delete
+aws s3 sync dist/public s3://$S3_BUCKET_NAME/ --delete --region $AWS_REGION
 
-# Invalidate CloudFront cache if distribution ID is provided
-if [ ! -z "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
+# Get CloudFront distribution ID
+CLOUDFRONT_DIST_ID=$(aws cloudformation describe-stacks \
+    --stack-name ucc-portal \
+    --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontDistributionId`].OutputValue' \
+    --output text \
+    --region $AWS_REGION)
+
+# Invalidate CloudFront cache if distribution ID is found
+if [ ! -z "$CLOUDFRONT_DIST_ID" ]; then
     echo "Invalidating CloudFront cache..."
-    aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+    aws cloudfront create-invalidation \
+        --distribution-id $CLOUDFRONT_DIST_ID \
+        --paths "/*" \
+        --region us-east-1  # CloudFront operations are always in us-east-1
 fi
 
 echo "Deployment completed successfully!"
@@ -54,6 +55,7 @@ echo "Getting CloudFront URL..."
 CLOUDFRONT_URL=$(aws cloudformation describe-stacks \
     --stack-name ucc-portal \
     --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontDomainName`].OutputValue' \
-    --output text)
+    --output text \
+    --region $AWS_REGION)
 
 echo "Your website is available at: https://$CLOUDFRONT_URL"

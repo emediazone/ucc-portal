@@ -2,59 +2,21 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'United Corgi Commonwealth Portal Infrastructure'
 
 Parameters:
-  DomainName:
+  BucketName:
     Type: String
-    Description: Domain name for the website
+    Default: 'amplify-d26tocx92nj88b-ma-amplifydataamplifycodege-j6g2ske9yofx'
+    Description: Name of the existing S3 bucket to use
 
 Resources:
-  WebsiteBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Ref DomainName
-      WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: index.html
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
-      CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders: ['*']
-            AllowedMethods: ['GET']
-            AllowedOrigins: ['*']
-            MaxAge: 3000
-
-  WebsiteBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref WebsiteBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: PublicReadGetObject
-            Effect: Allow
-            Principal: '*'
-            Action: s3:GetObject
-            Resource: !Join ['', ['arn:aws:s3:::', !Ref WebsiteBucket, '/*']]
-            Condition:
-              IpAddress:
-                aws:SourceIp: 
-                  - '0.0.0.0/0'
-
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
         Origins:
-          - DomainName: !Select [2, !Split ['/', !GetAtt WebsiteBucket.WebsiteURL]]
+          - DomainName: !Sub "${BucketName}.s3.us-east-2.amazonaws.com"
             Id: S3Origin
-            CustomOriginConfig:
-              HTTPPort: 80
-              HTTPSPort: 443
-              OriginProtocolPolicy: http-only
-              OriginSSLProtocols: ['TLSv1.2']
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
         Enabled: true
         DefaultRootObject: index.html
         DefaultCacheBehavior:
@@ -80,9 +42,14 @@ Resources:
           - ErrorCode: 403
             ResponseCode: 200
             ResponsePagePath: /index.html
-        WebACLId: !Ref WebACL
         HttpVersion: http2
         IPV6Enabled: true
+
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "CloudFront OAI for ${AWS::StackName}"
 
   SecurityHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
@@ -110,6 +77,19 @@ Resources:
             Protection: true
             Override: true
 
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BucketName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+            Action: 's3:GetObject'
+            Resource: !Sub "arn:aws:s3:::${BucketName}/*"
+
   WebACL:
     Type: AWS::WAFv2::WebACL
     Properties:
@@ -136,10 +116,8 @@ Resources:
             CloudWatchMetricsEnabled: true
             MetricName: !Sub ${AWS::StackName}-rate-limit
 
+
 Outputs:
-  WebsiteURL:
-    Value: !GetAtt WebsiteBucket.WebsiteURL
-    Description: URL for website hosted on S3
   CloudFrontDomainName:
     Value: !GetAtt CloudFrontDistribution.DomainName
     Description: Domain name of CloudFront distribution
