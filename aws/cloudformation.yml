@@ -11,6 +11,7 @@ Resources:
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       DistributionConfig:
         Origins:
@@ -49,6 +50,7 @@ Resources:
   CloudFrontOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Sub "CloudFront OAI for ${AWS::StackName}"
@@ -56,6 +58,7 @@ Resources:
   SecurityHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       ResponseHeadersPolicyConfig:
         Name: !Sub ${AWS::StackName}-security-headers
@@ -83,6 +86,7 @@ Resources:
   BucketPolicy:
     Type: AWS::S3::BucketPolicy
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Bucket: !Ref BucketName
       PolicyDocument:
@@ -97,6 +101,7 @@ Resources:
   WebACL:
     Type: AWS::WAFv2::WebACL
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Name: !Sub ${AWS::StackName}-waf
       Description: WAF for United Corgi Commonwealth Portal
