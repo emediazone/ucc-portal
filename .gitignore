@@ -44,3 +44,14 @@ vite.config.ts.*
 # Misc
 .DS_Store
 *.log
+
+# Windows-specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# AWS credentials
+.aws
+
+# System Files
+.DS_Store
