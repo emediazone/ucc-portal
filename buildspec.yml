@@ -5,25 +5,35 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
+      # Install dependencies
       - npm install
 
   build:
     commands:
+      # Build both frontend and backend
       - npm run build
+      # Copy any necessary configuration files
+      - cp package.json dist/
+      - cp package-lock.json dist/
 
   post_build:
     commands:
+      # Sync frontend build to S3
       - aws s3 sync dist/public s3://${S3_BUCKET_NAME}/ --delete
+      # Create CloudFront invalidation if distribution ID is provided
       - |
         if [ ! -z "${CLOUDFRONT_DISTRIBUTION_ID}" ]; then
           aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION_ID} --paths "/*"
         fi
 
-artifacts:
-  files:
-    - '**/*'
-  base-directory: 'dist/public'
-
 cache:
   paths:
     - 'node_modules/**/*'
+    - '.next/cache/**/*'
+    - 'dist/**/*'
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: 'dist'
+  name: ucc-portal-build-$(date +%Y-%m-%d)
