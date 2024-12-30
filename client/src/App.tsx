@@ -1,11 +1,11 @@
 import { Switch, Route } from "wouter";
-import LandingPage from "./pages/LandingPage";
-import NotFound from "./pages/NotFound";
+import Home from "@/pages/Home";
+import NotFound from "@/pages/NotFound";
 
 function App() {
   return (
     <Switch>
-      <Route path="/" component={LandingPage} />
+      <Route path="/" component={Home} />
       <Route component={NotFound} />
     </Switch>
   );
