@@ -66,10 +66,12 @@ const LandingPage = () => {
               <ul className="space-y-3">
                 {quickLinks.map((link) => (
                   <li key={link.href}>
-                    <a href={link.href} className="flex items-center text-sm hover:text-primary transition-colors">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      {link.title}
-                    </a>
+                    <Link href={link.href}>
+                      <a className="flex items-center text-sm hover:text-primary transition-colors">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {link.title}
+                      </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
