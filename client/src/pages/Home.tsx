@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AlertCircle, BadgeCheck } from "lucide-react";
+import { AlertCircle, BadgeCheck, Settings } from "lucide-react";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 
 const Home = () => {
   return (
@@ -8,6 +10,12 @@ const Home = () => {
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold mb-2">United Corgi Commonwealth</h1>
         <p className="text-xl text-gray-600">Official Portal</p>
+        <Link href="/config">
+          <Button className="mt-4" size="lg">
+            <Settings className="mr-2 h-5 w-5" />
+            Configure AWS Infrastructure
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
