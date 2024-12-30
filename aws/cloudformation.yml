@@ -116,7 +116,6 @@ Resources:
             CloudWatchMetricsEnabled: true
             MetricName: !Sub ${AWS::StackName}-rate-limit
 
-
 Outputs:
   CloudFrontDomainName:
     Value: !GetAtt CloudFrontDistribution.DomainName
