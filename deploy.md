@@ -1,1 +1,4 @@
-aws s3 mb s3://your-bucket-name --region your-region
+aws cloudformation create-stack \
+  --stack-name ucc-portal \
+  --template-body file://aws/cloudformation.yml \
+  --parameters ParameterKey=DomainName,ParameterValue=your-domain-name
