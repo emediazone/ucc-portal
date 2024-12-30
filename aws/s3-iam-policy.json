@@ -1,0 +1,24 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:ListBucket",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::amplify-d26tocx92nj88b-ma-amplifydataamplifycodege-j6g2ske9yofx",
+                "arn:aws:s3:::amplify-d26tocx92nj88b-ma-amplifydataamplifycodege-j6g2ske9yofx/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudfront:CreateInvalidation"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
